@@ -6,109 +6,19 @@ import os
 from pydantic import BaseModel, StringConstraints
 from dotenv import load_dotenv
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.graph import START, MessagesState, StateGraph
-from langchain_core.messages import SystemMessage
-from langchain_core.tools import tool
-from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_core.vectorstores import InMemoryVectorStore
+from app.llm.graph import build_lc_graph
 
-from app.services.geocoding import geocode_location
-from app.services.smhi import fetch_rain_data
-from app.rag.knowledge_base import get_vector_store
+from app.config import load_gemini_key
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not set in the environment variables.")
-
-
-vector_store = get_vector_store(GEMINI_API_KEY)
-
-
-system_message = "You are a helpful assistant with the goal of helping users with knowledge of mushrooms."
-
-
-
-
-@tool 
-def search_knowledge_base(query:str) -> list[dict]:
-    """Search a knowledge base of Wikipedia articles about mushroom species found in Sweden.
-    
-    Args: the query to look up e.g. "edibale mushrooms" 
-    """
-    logger.info("Knowledge base searched for %s", query)
-
-    results = vector_store.similarity_search(query, k=5)
-    return [
-        
-        {"species": doc.metadata["species"], "source": doc.metadata["source"], "text": doc.page_content}
-        for doc in results
-    ]
-
-
-@tool
-async def get_recent_weather_data(location: str) -> dict:
-    """Get recent rain data near a Swedish location,
-    from SMHI's quality-checked weather stations.
-    
-    Use this when the user asks about the weather in a specific location. Do not use this for forecasts and locations outside sweden.
-
-    Args: location: a Swedish town or place name e.g. "Stockholm" or "Lövön"
-    
-    The results name station and its distance to the given location, and the date the data runs to. if the data_is_stale flag is true
-    inform the user that the data may be incomplete or out of date"""
-    logger.info("Weather tool called for %s", location)
-    param = {
-        "rain": 5,
-        "temperature": 2,
-        "location": location
-    }
-
-    location_data = await geocode_location(location)
-    if location_data is None:
-        return {"error": f"Location '{location}' could not be found in Sweden."}
-    rain = await fetch_rain_data(location_data["latitude"], location_data["longitude"])
-
-    return {
-        "location": location_data,
-        "rain": rain
-    }
-
-#model and graph setup
-tools = [get_recent_weather_data, search_knowledge_base]
-
-model = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", api_key=GEMINI_API_KEY)
-
-model = model.bind_tools(tools)
-
-async def assistant(state: MessagesState):
-    messages = [SystemMessage(system_message)] + state["messages"]
-    response = await model.ainvoke(messages)
-    return {"messages": [response]}
-
-
-builder = StateGraph(MessagesState)
-builder.add_node("assistant", assistant)
-builder.add_node("tools", ToolNode(tools))
-builder.add_edge(START, "assistant")
-builder.add_conditional_edges("assistant", tools_condition)
-builder.add_edge("tools", "assistant")
-
-graph = builder.compile(checkpointer=InMemorySaver())
+graph = build_lc_graph
 
 app = FastAPI()
-
-
-@app.get("/api/test")
-async def test_endpoint():
-    return await fetch_rain_data(59.3293, 18.0686)  # Example coordinates for Stockholm
 
 NonEmptyString = Annotated[str, StringConstraints( strip_whitespace=True, min_length=1)]
 

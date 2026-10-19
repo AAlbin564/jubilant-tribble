@@ -1,6 +1,3 @@
-import os 
-from dotenv import load_dotenv
-
 from pathlib import Path
 
 from langchain_core.documents import Document
