@@ -1,7 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from typing import Annotated, Literal
+import httpx
+import logging
+import os
 from pydantic import BaseModel, StringConstraints
 from dotenv import load_dotenv
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
@@ -9,13 +13,13 @@ from langchain_core.messages import SystemMessage
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.vectorstores import InMemoryVectorStore
+
 from app.services.geocoding import geocode_location
 from app.services.smhi import fetch_rain_data
-import httpx
-import logging
-import os
+from app.rag.knowledge_base import get_vector_store
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
@@ -25,14 +29,28 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not set in the environment variables.")
 
 
-
-
+vector_store = get_vector_store(GEMINI_API_KEY)
 
 
 system_message = "You are a helpful assistant with the goal of helping users with knowledge of mushrooms."
 
 
 
+
+@tool 
+def search_knowledge_base(query:str) -> list[dict]:
+    """Search a knowledge base of Wikipedia articles about mushroom species found in Sweden.
+    
+    Args: the query to look up e.g. "edibale mushrooms" 
+    """
+    logger.info("Knowledge base searched for %s", query)
+
+    results = vector_store.similarity_search(query, k=5)
+    return [
+        
+        {"species": doc.metadata["species"], "source": doc.metadata["source"], "text": doc.page_content}
+        for doc in results
+    ]
 
 
 @tool
@@ -46,6 +64,7 @@ async def get_recent_weather_data(location: str) -> dict:
     
     The results name station and its distance to the given location, and the date the data runs to. if the data_is_stale flag is true
     inform the user that the data may be incomplete or out of date"""
+    logger.info("Weather tool called for %s", location)
     param = {
         "rain": 5,
         "temperature": 2,
@@ -63,8 +82,7 @@ async def get_recent_weather_data(location: str) -> dict:
     }
 
 #model and graph setup
-
-tools = [get_recent_weather_data]
+tools = [get_recent_weather_data, search_knowledge_base]
 
 model = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", api_key=GEMINI_API_KEY)
 

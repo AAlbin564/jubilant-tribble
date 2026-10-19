@@ -53,7 +53,7 @@ def create_vector_store(chunks: list[Document], embeddings):
 
 
 def get_vector_store(api_key: str) -> InMemoryVectorStore:
-    """Load the saved vector store, or build and save it if it doesn't exist yet."""
+    """Load the saved vector store or build and save it if it doesn't exist yet."""
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-001",
         google_api_key=api_key,
