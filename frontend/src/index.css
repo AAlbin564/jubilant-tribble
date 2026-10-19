@@ -1,0 +1,87 @@
+body{
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  margin: 0;
+}
+#root{
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+.title{
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+.chat-box{
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(700px, 100% - 2rem);
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+.chat-container{
+  flex-shrink: 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 1.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.chat-container:focus-within{
+  border-color: #2f6f4e;
+}
+.chat-container form{
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.chat-container input{
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  padding: 0.5rem 0;
+}
+.chat-container button{
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1.2rem;
+  background: #2f6f4e;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chat-container button:hover{
+  background: #24573d;
+}
+.message-list{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.message-list > :first-child{
+  margin-top: auto;
+}
+.message{
+  max-width: 75%;
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  overflow-wrap: anywhere;
+}
+.message.user{
+  align-self: flex-end;
+  background: #e8f1ec;
+}
+.message.assistant{
+  align-self: flex-start;
+  background: #f0f0f0;
+}
