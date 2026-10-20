@@ -113,7 +113,7 @@ Run the backend and watch its logs while asking these to see the tool calls, dra
 
 ## What I would do with more time:
 
-- implement streaming progress in the UI 
-- implement a persistent checkpointer for chats and vector database
-- a forecasting tool to not only provide historical information but also upcoming information
-- implement docker so the whole thing can be run easier 
+- Stream progress to the UI (tool calls, verifier review), since a rejected draft roughly doubles response time
+- Persist chat history and the vector store (e.g. a database-backed checkpointer and vector DB) instead of keeping them in memory and a JSON file
+- Add a forecasting tool, so the assistant can use upcoming weather, not just recent rain
+- Add a Docker setup so the whole app runs with one command
