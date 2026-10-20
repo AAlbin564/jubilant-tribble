@@ -16,8 +16,8 @@ htmlcov/
 build/
 dist/
 
-# Generated data (built by app/build_species_information.py)
-backend/data/
+# Generated vector store (built from backend/data/knowledge on first start)
+backend/data/vector_store.json
 
 # Node
 node_modules/

@@ -28,7 +28,7 @@ VERIFIER_MODEL_NAME=gemini-3.5-flash-lite
 
 `MODEL_NAME` is the model the assistant uses and `VERIFIER_MODEL_NAME` the one the verifier uses. The embedding model is set in `backend/app/constants.py`.
 
-Create the knowledge base (only needs to be run once to create the knowledge base):
+The knowledge base articles are included in `backend/data/knowledge/`. The vector store is built from them automatically the first time the backend starts. To re-fetch the articles from Wikipedia (optional), run the command below and delete `backend/data/vector_store.json` so it is rebuilt:
 
 ```sh
 cd backend
