@@ -1,15 +1,9 @@
-from pathlib import Path
-import re
-
 import httpx
 
-from app.constants import MUSHROOM_ARTICLE_TITLES, WIKIPEDIA_API_URL, WIKIPEDIA_HEADERS, EXCLUDED_ARTICLE_SECTIONS
-
-
-
-OUT_DIR = Path(__file__).parent.parent / "data" / "knowledge"
-
-SECTION_HEADER = re.compile(r"^(={2,})\s*(.*?)\s*\1\s*$", re.MULTILINE)
+from app.constants import (
+    EXCLUDED_ARTICLE_SECTIONS, HTTP_TIMEOUT_SECONDS, KNOWLEDGE_DIR, MUSHROOM_ARTICLE_TITLES,
+    WIKI_SECTION_HEADER, WIKIPEDIA_API_URL, WIKIPEDIA_HEADERS,
+)
 
 def is_excluded(header: str) -> bool:
     return any(keyword in header.lower() for keyword in EXCLUDED_ARTICLE_SECTIONS)
@@ -20,7 +14,7 @@ def fetch_wiki_article(title: str) -> tuple[str,str] | None:
         "redirects": 1, "format": "json", "titles": title,
     }
 
-    response = httpx.get(WIKIPEDIA_API_URL, params=params, headers=WIKIPEDIA_HEADERS, timeout=10)
+    response = httpx.get(WIKIPEDIA_API_URL, params=params, headers=WIKIPEDIA_HEADERS, timeout=HTTP_TIMEOUT_SECONDS)
     response.raise_for_status()
     pages = response.json()["query"]["pages"]
     article = list(pages.values())[0]
@@ -31,7 +25,7 @@ def fetch_wiki_article(title: str) -> tuple[str,str] | None:
 
 def trim_article(text: str) -> str:
     """Remove sections not relevant for mushroom foraging."""
-    matches = list(SECTION_HEADER.finditer(text))
+    matches = list(WIKI_SECTION_HEADER.finditer(text))
     if not matches:
         return text.strip()
 
@@ -61,7 +55,7 @@ def main():
     """For each article in MUSHROOM_ARTICLE_TITLES fetch that article then if it exists create a new .md file containing the article contents
     and named after the article attach also header information saying which URL it came from and the license"""
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
 
     for article_title in MUSHROOM_ARTICLE_TITLES:
 
@@ -84,7 +78,7 @@ def main():
         url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
         header = f"# {title}\n\nSource: {url}\nLicense: CC BY-SA 4.0 (Wikipedia)\n\n"
 
-        (OUT_DIR / filename).write_text(header + species_information, encoding="utf-8")
+        (KNOWLEDGE_DIR / filename).write_text(header + species_information, encoding="utf-8")
 
         print(f"finished article: {title}")
 

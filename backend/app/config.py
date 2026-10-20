@@ -1,14 +1,24 @@
+import logging
 import os
+
 from dotenv import load_dotenv
 
+load_dotenv()
 
-def load_gemini_key() -> str:
-    load_dotenv()
-    key = os.getenv("GEMINI_API_KEY")
+logging.basicConfig(level=logging.INFO)
 
-    if not key:
-        raise RuntimeError("GEMINI_API_KEY is not set in the environment variables.")
 
-    return key
+def require_env(name: str) -> str:
+    value = os.getenv(name)
 
-GEMINI_API_KEY = load_gemini_key()
+    if not value:
+        raise RuntimeError(f"{name} is not set in the environment variables. Add it to the .env file in the repo root.")
+
+    return value
+
+
+GEMINI_API_KEY = require_env("GEMINI_API_KEY")
+
+GEMINI_MODEL_NAME = require_env("MODEL_NAME")
+
+VERIFIER_MODEL_NAME = require_env("VERIFIER_MODEL_NAME")

@@ -1,8 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Backend for the multi-agent mushroom foraging assistant"
 authors = [
     { name = "AAlbin564", email = "149575830+AAlbin564@users.noreply.github.com" }
 ]
@@ -15,6 +14,3 @@ dependencies = [
     "numpy>=2.5.4",
     "python-dotenv>=1.2.4",
 ]
-
-[project.scripts]
-backend = "backend:main"

@@ -1,15 +1,17 @@
+import logging
 
 import httpx
-from app.services.helpers import distance_km, is_data_usable, stations_by_distance, days_with_data, rain_since
+from app.services.helpers import is_data_usable, stations_by_distance, days_with_data, rain_since
 
-from app.constants import MAX_STATION_ATTEMPTS, SMHI_BASE_URL, SMHI_API_URL
+from app.constants import HTTP_TIMEOUT_SECONDS, MAX_STATION_ATTEMPTS, SMHI_BASE_URL, SMHI_API_URL, SMHI_RAIN_PARAMETER
 from datetime import date
 
+logger = logging.getLogger(__name__)
 
 
 async def fetch_active_stations(param: str) -> list[dict]:
     url = f"{SMHI_BASE_URL}/parameter/{param}.json"
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
         response = await client.get(url)
         response.raise_for_status()
         stations = response.json()["station"]
@@ -25,27 +27,12 @@ async def fetch_active_stations(param: str) -> list[dict]:
         if s["active"] and s["measuringStations"] == "CORE"
     ]
 
-def find_nearest_station(stations: list[dict], latitude: float, longitude: float) -> dict:
-    """Find the nearest station to the given coordinates. uses haversine formula to calculate distance between two points on the Earth.
-    In: list of stations, coordinates for the location the user has asked for
-    Out: the nearest station to the given coordinates"""
-
-
-    def station_distance(s):
-        return distance_km(s["latitude"], s["longitude"], latitude, longitude)
-
-    nearest_station = min(stations, key=station_distance)
-
-    
-
-    return {**nearest_station, "distance_km": round(station_distance(nearest_station))}
-
 async def fetch_rain_data(latitude: float, longitude: float) -> dict:
     """Fetch recent rain data from SMHI API for given coordinates.
     In: coordinates for the location the user has asked for
     Out: a dict with the rain data, summary over the last 7 and 14 days, and the station name where this was measured
     """
-    active_stations = await fetch_active_stations("5")
+    active_stations = await fetch_active_stations(SMHI_RAIN_PARAMETER)
 
     fallback_station = None
 
@@ -60,14 +47,14 @@ async def fetch_rain_data(latitude: float, longitude: float) -> dict:
 
 
     # try to find a station with usable data, from the candidates list.
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
         for station in candidates:
-            url = SMHI_API_URL.format(param="5", station_id=station["id"])
+            url = SMHI_API_URL.format(param=SMHI_RAIN_PARAMETER, station_id=station["id"])
             try:
                 response = await client.get(url)
                 response.raise_for_status()
             except httpx.HTTPError as e:
-                print(f"Error fetching data for station {station['name']} (ID: {station['id']}): {e}")
+                logger.warning("Error fetching data for station %s (ID: %s): %s", station["name"], station["id"], e)
                 continue
 
 
